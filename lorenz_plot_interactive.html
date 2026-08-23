@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading the Lorenz Plot | Pivotal Health CCT Training</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Lato:wght@400;600;700&display=swap');
+
+  :root{
+    --navy:#0F112D;
+    --navy-2:#1B2247;
+    --steel:#3A5A78;
+    --blue:#0F5FAA;
+    --red:#CB2C21;
+    --amber:#D98E24;
+    --green:#2E8B57;
+    --paper:#F6F5F1;
+    --card:#FFFFFF;
+    --line:#DAD9D3;
+    --ink:#1B1B1B;
+    --muted:#6B6F76;
+  }
+  [data-theme="dark"]{
+    --paper:#12142A;
+    --card:#1A1D3B;
+    --line:#2C3060;
+    --ink:#EDEDF5;
+    --muted:#9EA3C2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Lato',sans-serif;
+    transition:background .25s ease,color .25s ease;
+  }
+  h1,h2,h3,.display{
+    font-family:'Barlow Condensed',sans-serif;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+  }
+  header{
+    background:linear-gradient(120deg,var(--navy) 0%,var(--navy-2) 100%);
+    color:#fff;
+    padding:22px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 2px 12px rgba(0,0,0,.25);
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--red);}
+  .brand-text h1{margin:0;font-size:26px;font-weight:700;color:#fff;}
+  .brand-text p{margin:0;font-size:12.5px;color:#B9C0D6;font-family:'Lato';text-transform:none;letter-spacing:0;}
+  .theme-toggle{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.25);
+    color:#fff;
+    border-radius:20px;
+    padding:7px 14px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:'Lato';
+  }
+
+  nav{
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:var(--card);
+    border-bottom:1px solid var(--line);
+    padding:0 20px;
+    position:sticky;
+    top:74px;
+    z-index:40;
+  }
+  nav button{
+    background:none;
+    border:none;
+    padding:14px 16px;
+    font-family:'Barlow Condensed';
+    font-size:15px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--muted);
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav button.active{color:var(--blue);border-bottom-color:var(--red);font-weight:700;}
+
+  main{max-width:980px;margin:0 auto;padding:36px 22px 90px;}
+  .panel{display:none;animation:fade .35s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .eyebrow{color:var(--red);font-family:'Barlow Condensed';font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+  h2.title{font-size:34px;margin:0 0 14px;color:var(--navy);}
+  [data-theme="dark"] h2.title{color:#fff;}
+  p.lead{font-size:16.5px;line-height:1.6;color:var(--ink);max-width:70ch;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+    margin:16px 0;
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+
+  .callout{
+    border-left:4px solid var(--blue);
+    background:rgba(15,95,170,.07);
+    padding:14px 16px;
+    border-radius:0 8px 8px 0;
+    font-size:14.5px;
+    line-height:1.55;
+  }
+  .callout.red{border-color:var(--red);background:rgba(203,44,33,.07);}
+  .callout.green{border-color:var(--green);background:rgba(46,139,87,.07);}
+
+  svg{display:block;width:100%;height:auto;}
+  .plot-wrap{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;}
+  .plot-label{font-family:'Barlow Condensed';font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px;}
+
+  .shape-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .shape-tabs button{
+    font-family:'Lato';font-weight:700;font-size:13px;
+    padding:8px 14px;border-radius:20px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;
+  }
+  .shape-tabs button.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  button.btn{
+    background:var(--navy);color:#fff;border:none;border-radius:6px;
+    padding:10px 18px;font-family:'Barlow Condensed';font-size:15px;
+    letter-spacing:.03em;text-transform:uppercase;cursor:pointer;
+  }
+  button.btn.secondary{background:transparent;color:var(--navy);border:1.5px solid var(--navy);}
+  [data-theme="dark"] button.btn.secondary{color:#fff;border-color:#fff;}
+  button.btn:disabled{opacity:.4;cursor:not-allowed;}
+  button.btn.red{background:var(--red);}
+
+  .cluster-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
+  .chip{display:flex;align-items:center;gap:6px;font-size:13px;padding:5px 10px;border-radius:20px;border:1px solid var(--line);}
+  .swatch{width:10px;height:10px;border-radius:50%;}
+
+  .quiz-progress{font-family:'Barlow Condensed';font-size:14px;color:var(--muted);margin-bottom:8px;}
+  .quiz-q{font-size:19px;font-weight:700;margin:6px 0 16px;line-height:1.4;}
+  .quiz-opt{
+    display:block;width:100%;text-align:left;background:var(--card);
+    border:1.5px solid var(--line);border-radius:8px;padding:13px 16px;
+    margin-bottom:10px;cursor:pointer;font-family:'Lato';font-size:15px;color:var(--ink);
+  }
+  .quiz-opt:hover{border-color:var(--blue);}
+  .quiz-opt.correct{border-color:var(--green);background:rgba(46,139,87,.12);}
+  .quiz-opt.incorrect{border-color:var(--red);background:rgba(203,44,33,.12);}
+  .quiz-opt:disabled{cursor:default;}
+  .explain{font-size:14px;line-height:1.55;background:var(--paper);border-radius:8px;padding:12px 14px;margin-top:6px;}
+  .score-big{font-family:'Barlow Condensed';font-size:56px;color:var(--navy);}
+  [data-theme="dark"] .score-big{color:#fff;}
+
+  table.cheat{width:100%;border-collapse:collapse;font-size:14px;}
+  table.cheat th{
+    text-align:left;font-family:'Barlow Condensed';text-transform:uppercase;
+    font-size:13px;letter-spacing:.03em;color:var(--muted);
+    border-bottom:2px solid var(--line);padding:8px 10px;
+  }
+  table.cheat td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+
+  .click-target{cursor:pointer;}
+  .click-target:hover circle{stroke:var(--red);stroke-width:2;}
+
+  footer{text-align:center;font-size:12px;color:var(--muted);padding:26px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="dot"></div>
+    <div class="brand-text">
+      <h1>Reading the Lorenz Plot</h1>
+      <p>Pivotal Health · CCT Training</p>
+    </div>
+  </div>
+  <button class="theme-toggle" id="themeBtn">🌙 Dark mode</button>
+</header>
+
+<nav id="tabBar"></nav>
+
+<main id="main"></main>
+
+<footer>Built for Pivotal Health CCT training · content adapted from BTL CardioPoint-Holter Lorenz Plot reference</footer>
+
+<script>
+/* ============================================================
+   0. THEME TOGGLE
+============================================================ */
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', ()=>{
+  const dark = document.body.getAttribute('data-theme') === 'dark';
+  document.body.setAttribute('data-theme', dark ? 'light' : 'dark');
+  themeBtn.textContent = dark ? '🌙 Dark mode' : '☀️ Light mode';
+});
+
+/* ============================================================
+   1. SCATTER PLOT ENGINE
+   Generates synthetic RR/RR+1 point clouds for each pattern type
+   so every reload looks slightly different — like real data.
+============================================================ */
+function rnd(a,b){return a + Math.random()*(b-a);}
+function gauss(mean,sd){
+  let u=1-Math.random(), v=Math.random();
+  return mean + sd * Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+function makeComet(n, lowerBound, upperBound, widthFactor){
+  // narrow near origin, widening toward the top-right, along identity line
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const t = Math.pow(Math.random(),0.6); // bias toward lower cluster density
+    const base = lowerBound + t*(upperBound-lowerBound);
+    const w = (base-lowerBound)/(upperBound-lowerBound) * widthFactor * rnd(0.6,1.3);
+    const perp = gauss(0,w);
+    pts.push({x: base - perp*0.5, y: base + perp*0.5});
+  }
+  return pts;
+}
+function makeShattered(n, min, max){
+  const pts=[];
+  for(let i=0;i<n;i++){
+    pts.push({x: rnd(min,max), y: rnd(min,max)});
+  }
+  return pts;
+}
+function makeCluster(n, cx, cy, sx, sy){
+  const pts=[];
+  for(let i=0;i<n;i++){
+    pts.push({x: gauss(cx,sx), y: gauss(cy,sy)});
+  }
+  return pts;
+}
+function makeAsymCluster(n, cx, cy, sAlong, sPerp, skew){
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const along = gauss(0,sAlong);
+    const perp = gauss(skew*Math.abs(along)/sAlong, sPerp);
+    pts.push({x: cx+along-perp*0.5, y: cy+along+perp*0.5});
+  }
+  return pts;
+}
+
+function drawPlot(svg, opts){
+  const {size=340, max=1600, clusters=[], showIdentity=true, axisLabel='ms'} = opts;
+  const pad=34;
+  const scale = (size-2*pad)/max;
+  let html = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
+  const bg = document.body.getAttribute('data-theme')==='dark' ? '#1A1D3B' : '#FFFFFF';
+  const axisColor = document.body.getAttribute('data-theme')==='dark' ? '#4A4F86' : '#B9BCC4';
+  const textColor = document.body.getAttribute('data-theme')==='dark' ? '#9EA3C2' : '#6B6F76';
+  html += `<rect x="0" y="0" width="${size}" height="${size}" fill="${bg}" rx="8"/>`;
+  // axes
+  html += `<line x1="${pad}" y1="${size-pad}" x2="${size-10}" y2="${size-pad}" stroke="${axisColor}" stroke-width="1.5"/>`;
+  html += `<line x1="${pad}" y1="${size-pad}" x2="${pad}" y2="10" stroke="${axisColor}" stroke-width="1.5"/>`;
+  if(showIdentity){
+    html += `<line x1="${pad}" y1="${size-pad}" x2="${pad+max*scale}" y2="${size-pad-max*scale}" stroke="${axisColor}" stroke-dasharray="4,4" stroke-width="1"/>`;
+  }
+  html += `<text x="${size-10}" y="${size-pad+16}" font-size="9" fill="${textColor}" text-anchor="end" font-family="Lato">RRn</text>`;
+  html += `<text x="${pad-6}" y="14" font-size="9" fill="${textColor}" text-anchor="end" font-family="Lato">RRn+1</text>`;
+  clusters.forEach(cl=>{
+    cl.pts.forEach(p=>{
+      const x = pad + Math.min(Math.max(p.x,0),max)*scale;
+      const y = size-pad - Math.min(Math.max(p.y,0),max)*scale;
+      html += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.6" fill="${cl.color}" opacity="0.75"/>`;
+    });
+  });
+  html += `</svg>`;
+  svg.innerHTML = html;
+}
+
+/* ============================================================
+   2. TAB / PANEL SYSTEM
+============================================================ */
+const tabs = [
+  {id:'overview', label:'Overview'},
+  {id:'build', label:'Build a Graph'},
+  {id:'read', label:'Read the Shape'},
+  {id:'ectopic', label:'Ectopic Beats'},
+  {id:'patterns', label:'Real Patterns'},
+  {id:'views', label:'Views: N-N-N vs Other'},
+  {id:'quiz', label:'Knowledge Check'},
+  {id:'cheat', label:'Cheat Sheet'},
+];
+const tabBar = document.getElementById('tabBar');
+tabs.forEach((t,i)=>{
+  const b = document.createElement('button');
+  b.textContent = t.label;
+  b.dataset.id = t.id;
+  if(i===0) b.classList.add('active');
+  b.addEventListener('click', ()=>showTab(t.id));
+  tabBar.appendChild(b);
+});
+function showTab(id){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='read') refreshShapePlot();
+  if(id==='patterns') refreshPatternPlots();
+  if(id==='views') refreshViewPlots();
+}
+
+const main = document.getElementById('main');
+
+/* ============================================================
+   3. OVERVIEW PANEL
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel active" id="overview">
+  <div class="eyebrow">Why it matters</div>
+  <h2 class="title">One Picture, an Entire Holter Record</h2>
+  <p class="lead">A Lorenz plot (also called a scattergram) plots every RR interval against the one right before it. A multi-day Holter record — tens of thousands of beats — collapses into a single scatter of dots. Shape, size, and position of the resulting cluster tell you almost everything you need to know before you ever scroll the strip.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0;">What it's used for</h3>
+      <ul style="line-height:1.8;">
+        <li>Spotting HRV changes at a glance</li>
+        <li>Catching Atrial Fibrillation / Flutter</li>
+        <li>Flagging ectopic beats</li>
+        <li>Finding pauses</li>
+        <li>Sanity-checking the automatic diagnostics</li>
+        <li>Judging overall record quality / noise</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">The core idea</h3>
+      <div class="plot-wrap"><svg id="overviewDemo"></svg></div>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:0;">Each dot = one heartbeat, plotted at (RRₙ, RRₙ₊₁). A dot sitting on the dashed line means that beat's interval matched the one before it exactly.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Named after Henri Poincaré</strong> — the French mathematician who developed this kind of plot in 1890, long before ECGs existed. The same construction shows up in physics, meteorology, and astronomy for the same reason: it reveals the shape of variability in any repeating signal.
+  </div>
+</section>
+`);
+{
+  const svg = document.getElementById('overviewDemo');
+  drawPlot(svg, {clusters:[
+    {pts: makeComet(500, 300, 1100, 220), color:'#2E8B57'}
+  ]});
+}
+
+/* ============================================================
+   4. BUILD A GRAPH — interactive "plot the point" game
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="build">
+  <div class="eyebrow">Try it yourself</div>
+  <h2 class="title">Plot the Point</h2>
+  <p class="lead">Using the two ECG strips from the reference guide: click on the plot where you think each RR pair belongs. Axis runs 0–1500 ms.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <div id="buildStripText" class="callout" style="margin-bottom:14px;"></div>
+      <button class="btn" id="buildRevealBtn">Show correct spot</button>
+      <button class="btn secondary" id="buildNextBtn" style="margin-left:8px;" disabled>Next strip →</button>
+      <div id="buildFeedback" style="margin-top:10px;font-weight:700;"></div>
+    </div>
+    <div class="plot-wrap">
+      <div class="plot-label">Click to place your point</div>
+      <svg id="buildPlot" style="cursor:crosshair;"></svg>
+    </div>
+  </div>
+</section>
+`);
+
+const buildRounds = [
+  {rrn:944, rrn1:970, label:'Strip 1 — first RR 944 ms (~64 bpm), second RR 970 ms (~62 bpm), both normal beats.'},
+  {rrn:946, rrn1:502, label:'Strip 2 — first RR 946 ms (~63 bpm), second RR only 502 ms (~120 bpm) — a supraventricular premature beat.'},
+  {rrn:800, rrn1:790, label:'Strip 3 — two steady normal beats, RR 800 ms then 790 ms.'},
+  {rrn:600, rrn1:2300, label:'Strip 4 — RR 600 ms, then a long pause of 2300 ms before the next beat.'},
+];
+let buildIdx = 0;
+let userPoint = null;
+const BUILD_MAX = 2500;
+const BUILD_SIZE = 340;
+const BUILD_PAD = 34;
+
+function buildScale(){ return (BUILD_SIZE-2*BUILD_PAD)/BUILD_MAX; }
+
+function renderBuildPlot(showCorrect){
+  const svg = document.getElementById('buildPlot');
+  const clusters=[];
+  if(userPoint) clusters.push({pts:[userPoint], color:'#0F5FAA'});
+  if(showCorrect){
+    const r = buildRounds[buildIdx];
+    clusters.push({pts:[{x:r.rrn,y:r.rrn1}], color:'#CB2C21'});
+  }
+  drawPlot(svg, {max:BUILD_MAX, clusters});
+}
+
+function loadBuildRound(){
+  userPoint = null;
+  document.getElementById('buildStripText').textContent = buildRounds[buildIdx].label;
+  document.getElementById('buildFeedback').textContent = '';
+  document.getElementById('buildNextBtn').disabled = true;
+  renderBuildPlot(false);
+}
+document.getElementById('buildPlot').addEventListener('click', (e)=>{
+  const rect = e.target.closest('svg').getBoundingClientRect();
+  const scaleX = BUILD_SIZE/rect.width, scaleY = BUILD_SIZE/rect.height;
+  const px = (e.clientX-rect.left)*scaleX, py=(e.clientY-rect.top)*scaleY;
+  const s = buildScale();
+  const x = (px-BUILD_PAD)/s;
+  const y = ((BUILD_SIZE-BUILD_PAD)-py)/s;
+  userPoint = {x:Math.max(0,x), y:Math.max(0,y)};
+  renderBuildPlot(false);
+});
+document.getElementById('buildRevealBtn').addEventListener('click', ()=>{
+  if(!userPoint){
+    document.getElementById('buildFeedback').textContent = 'Click the plot first to place your point.';
+    document.getElementById('buildFeedback').style.color = 'var(--red)';
+    return;
+  }
+  const r = buildRounds[buildIdx];
+  const dist = Math.hypot(userPoint.x-r.rrn, userPoint.y-r.rrn1);
+  renderBuildPlot(true);
+  const fb = document.getElementById('buildFeedback');
+  if(dist < 120){
+    fb.textContent = `Nice — within ${Math.round(dist)} ms of the true point (${r.rrn}, ${r.rrn1}).`;
+    fb.style.color = 'var(--green)';
+  } else {
+    fb.textContent = `Off by ${Math.round(dist)} ms. Correct point: (${r.rrn}, ${r.rrn1}).`;
+    fb.style.color = 'var(--red)';
+  }
+  document.getElementById('buildNextBtn').disabled = false;
+});
+document.getElementById('buildNextBtn').addEventListener('click', ()=>{
+  buildIdx = (buildIdx+1) % buildRounds.length;
+  loadBuildRound();
+});
+loadBuildRound();
+
+/* ============================================================
+   5. READ THE SHAPE — tabbed shape gallery
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="read">
+  <div class="eyebrow">Interpretation</div>
+  <h2 class="title">What the Shape Is Telling You</h2>
+  <p class="lead">Three things to check every time: length &amp; width of the main cluster, its position relative to the line of identity, and whether it's symmetric. Click through each pattern below.</p>
+
+  <div class="shape-tabs" id="shapeTabs"></div>
+  <div class="grid2">
+    <div class="plot-wrap"><svg id="shapePlot"></svg></div>
+    <div class="card" id="shapeExplain"></div>
+  </div>
+  <button class="btn secondary" id="shapeRegenBtn" style="margin-top:10px;">↻ Regenerate sample</button>
+</section>
+`);
+
+const shapePatterns = [
+  {
+    id:'normal', label:'Normal (comet)',
+    gen:()=>[{pts: makeComet(600,280,1050,180), color:'#2E8B57'}],
+    text:`<h3 style="margin-top:0;">Normal / healthy pattern</h3>
+    <p>Reminds you of a comet — narrow at the bottom, gradually widening toward the top along the line of identity. Length is clearly bigger than width, there's only one main cluster, and no dots sit above 2000 ms on either axis.</p>`
+  },
+  {
+    id:'narrow', label:'Narrow (sympathetic)',
+    gen:()=>[{pts: makeCluster(550,420,420,45,45), color:'#2E8B57'}],
+    text:`<h3 style="margin-top:0;">Narrow shape — sympathetic dominance</h3>
+    <p>Main cluster sits low on the line of identity and stays narrow. Shorter RR intervals naturally have less variability, so the cluster tightens. This pattern points toward sympathetic prevalence — expect tachycardia in the record.</p>`
+  },
+  {
+    id:'wide', label:'Wide (parasympathetic)',
+    gen:()=>[{pts: makeCluster(500,1150,1150,150,150), color:'#2E8B57'}],
+    text:`<h3 style="margin-top:0;">Wide shape — parasympathetic dominance</h3>
+    <p>Main cluster sits in the upper-right and spreads wide. HRV is naturally higher at lower heart rates, so parasympathetic dominance shows up as a broad cloud up near the top of the identity line. Expect bradycardia.</p>`
+  },
+  {
+    id:'position', label:'Position (3-way)',
+    gen:()=>[
+      {pts: makeCluster(600,420,420,70,70), color:'#CB2C21'},
+      {pts: makeCluster(600,750,750,110,110), color:'#2E8B57'},
+      {pts: makeCluster(600,1150,1150,160,160), color:'#0F5FAA'},
+    ],
+    text:`<h3 style="margin-top:0;">Position along the identity line</h3>
+    <p><span style="color:#CB2C21;font-weight:700;">Lower</span> = sympathetic prevails, tachycardia. <span style="color:#2E8B57;font-weight:700;">Center</span> = normal. <span style="color:#0F5FAA;font-weight:700;">Upper</span> = parasympathetic prevails, bradycardia.</p>`
+  },
+  {
+    id:'asym', label:'Symmetry',
+    gen:()=>[{pts: makeAsymCluster(600,750,750,260,90,140), color:'#D98E24'}],
+    text:`<h3 style="margin-top:0;">Asymmetric cluster</h3>
+    <p>Symmetry along the line of identity is the last check. A cluster that leans noticeably to one side of the diagonal — rather than sitting balanced across it — suggests a rhythm disorder is present and the strip is worth reviewing.</p>`
+  },
+];
+let shapeActive = 'normal';
+const shapeTabsEl = document.getElementById('shapeTabs');
+shapePatterns.forEach(p=>{
+  const b = document.createElement('button');
+  b.textContent = p.label;
+  b.dataset.id = p.id;
+  if(p.id===shapeActive) b.classList.add('active');
+  b.addEventListener('click', ()=>{ shapeActive=p.id; refreshShapePlot(); });
+  shapeTabsEl.appendChild(b);
+});
+document.getElementById('shapeRegenBtn').addEventListener('click', refreshShapePlot);
+function refreshShapePlot(){
+  document.querySelectorAll('#shapeTabs button').forEach(b=>b.classList.toggle('active', b.dataset.id===shapeActive));
+  const pattern = shapePatterns.find(p=>p.id===shapeActive);
+  drawPlot(document.getElementById('shapePlot'), {clusters: pattern.gen()});
+  document.getElementById('shapeExplain').innerHTML = pattern.text;
+}
+
+/* ============================================================
+   6. ECTOPIC BEATS — clickable 4-cluster diagram
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="ectopic">
+  <div class="eyebrow">Rhythm disorders</div>
+  <h2 class="title">Ectopic Beats Detection</h2>
+  <p class="lead">An ectopic beat splits the main cluster into extra satellite clusters. Click a cluster below to see what it represents.</p>
+  <div class="grid2">
+    <div class="plot-wrap">
+      <svg id="ectopicPlot"></svg>
+    </div>
+    <div class="card" id="ectopicExplain">
+      <p style="color:var(--muted);">Click a colored cluster on the plot to see its meaning.</p>
+    </div>
+  </div>
+</section>
+`);
+
+const ectopicClusters = [
+  {id:1, name:'Main cluster (NN)', color:'#2E8B57', cx:400, cy:400, sx:70, sy:70,
+   text:'Only RR couples formed by two normal beats. Normal RR interval on both axes.'},
+  {id:2, name:'NN → NS', color:'#D98E24', cx:600, cy:180, sx:45, sy:35,
+   text:'A normal RR interval followed by an ectopic (short) RR — e.g. a supraventricular premature beat. Normal distance on the horizontal axis, short distance on the vertical axis.'},
+  {id:3, name:'Ectopic → post-ectopic', color:'#7A3EA8', cx:180, cy:1050, sx:35, sy:70,
+   text:'The ectopic RR followed by the post-ectopic RR. Short distance on the horizontal axis (the ectopic beat itself), long distance on the vertical axis (the compensatory pause).'},
+  {id:4, name:'Post-ectopic → NN', color:'#0F5FAA', cx:1050, cy:900, sx:80, sy:60,
+   text:'The post-ectopic RR followed by a return to a normal beat. Long distance on the horizontal axis, normal distance on the vertical axis.'},
+];
+function renderEctopicPlot(){
+  const svg = document.getElementById('ectopicPlot');
+  const clusters = ectopicClusters.map(c=>({pts: makeCluster(70,c.cx,c.cy,c.sx,c.sy), color:c.color, id:c.id}));
+  drawPlot(svg, {max:1300, clusters});
+  // overlay clickable zones
+  const overlay = svg.querySelector('svg');
+}
+renderEctopicPlot();
+// simple click-region detection via nearest-cluster on click
+document.getElementById('ectopicPlot').addEventListener('click', (e)=>{
+  const svgEl = e.target.closest('svg');
+  const rect = svgEl.getBoundingClientRect();
+  const size=340, pad=34, max=1300;
+  const scale=(size-2*pad)/max;
+  const scaleX=size/rect.width, scaleY=size/rect.height;
+  const px=(e.clientX-rect.left)*scaleX, py=(e.clientY-rect.top)*scaleY;
+  const x=(px-pad)/scale, y=((size-pad)-py)/scale;
+  let closest=null, best=1e9;
+  ectopicClusters.forEach(c=>{
+    const d=Math.hypot(x-c.cx,y-c.cy);
+    if(d<best){best=d;closest=c;}
+  });
+  if(closest && best < 260){
+    document.getElementById('ectopicExplain').innerHTML =
+      `<h3 style="margin-top:0;color:${closest.color};">${closest.id}. ${closest.name}</h3><p>${closest.text}</p>`;
+  }
+});
+// legend as clickable buttons too (more reliable than pixel-hunting on small screens)
+{
+  const legendHtml = ectopicClusters.map(c=>
+    `<span class="chip" data-id="${c.id}" style="cursor:pointer;"><span class="swatch" style="background:${c.color}"></span>${c.id}. ${c.name}</span>`
+  ).join('');
+  document.getElementById('ectopicExplain').insertAdjacentHTML('afterend', `<div class="cluster-legend" id="ectopicLegend">${legendHtml}</div>`);
+  document.getElementById('ectopicLegend').addEventListener('click', (e)=>{
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    const c = ectopicClusters.find(cl=>cl.id==chip.dataset.id);
+    document.getElementById('ectopicExplain').innerHTML =
+      `<h3 style="margin-top:0;color:${c.color};">${c.id}. ${c.name}</h3><p>${c.text}</p>`;
+  });
+}
+
+/* ============================================================
+   7. REAL PATTERNS — shattered / pauses / noise toggle cards
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="patterns">
+  <div class="eyebrow">Field recognition</div>
+  <h2 class="title">Patterns You'll Actually See</h2>
+  <div class="shape-tabs" id="patternTabs"></div>
+  <div class="grid2">
+    <div class="plot-wrap"><svg id="patternPlot"></svg></div>
+    <div class="card" id="patternExplain"></div>
+  </div>
+</section>
+`);
+const patternDefs = [
+  {id:'afib', label:'AFib / Flutter',
+   gen:()=>[{pts: makeShattered(700,120,1600), color:'#3A5A78'}],
+   text:`<h3 style="margin-top:0;">Shattered / spilled image</h3><p>A high number of dots that don't build clusters and look randomly scattered. Often a sign of technical artifact — but can also be Atrial Fibrillation or Flutter. Select the area and pull the underlying ECG to tell the two apart.</p>`},
+  {id:'pause', label:'Pauses',
+   gen:()=>[
+     {pts: makeComet(600,300,900,140), color:'#2E8B57'},
+     {pts: makeCluster(50,2150,2150,60,60), color:'#0F5FAA'},
+     {pts: makeCluster(20,2300,2300,40,40), color:'#0F5FAA'},
+   ],
+   text:`<h3 style="margin-top:0;">Pauses</h3><p>Extremely easy to spot: any dot above the 2000 ms line on <em>either</em> axis deserves a look. A small satellite cluster near the top-right corner usually means two adjacent pauses back to back.</p>`},
+  {id:'noise', label:'Noise / artifact',
+   gen:()=>[
+     {pts: makeComet(500,300,900,150), color:'#2E8B57'},
+     {pts: makeShattered(180,150,650), color:'#7A3EA8'},
+   ],
+   text:`<h3 style="margin-top:0;">Noise / lead-off artifact</h3><p>A separate purple-ish smear of misinterpreted RR intervals, usually clustered at short intervals. Mark the suspicious area and browse the strip — it's often lead-off noise rather than a true arrhythmia, and can typically be deleted from diagnostics.</p>`},
+];
+document.getElementById('patternTabs').innerHTML = patternDefs.map((p,i)=>
+  `<button data-id="${p.id}" class="${i===0?'active':''}">${p.label}</button>`).join('');
+let patternActive = patternDefs[0].id;
+document.getElementById('patternTabs').addEventListener('click', (e)=>{
+  if(e.target.tagName!=='BUTTON') return;
+  patternActive = e.target.dataset.id;
+  refreshPatternPlots();
+});
+function refreshPatternPlots(){
+  document.querySelectorAll('#patternTabs button').forEach(b=>b.classList.toggle('active', b.dataset.id===patternActive));
+  const p = patternDefs.find(x=>x.id===patternActive);
+  drawPlot(document.getElementById('patternPlot'), {max: p.id==='pause'?2500:1600, clusters:p.gen()});
+  document.getElementById('patternExplain').innerHTML = p.text;
+}
+
+/* ============================================================
+   8. VIEWS: N-N-N vs OTHER
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="views">
+  <div class="eyebrow">CardioPoint-Holter software</div>
+  <h2 class="title">N-N-N vs. "Other"</h2>
+  <p class="lead">BTL CardioPoint-Holter splits the Lorenz plot into two views. Same underlying idea applies to Cardiologs' abnormal-beat clustering.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0;">N-N-N</h3>
+      <div class="plot-wrap"><svg id="viewNNN"></svg></div>
+      <p>Only RR couples between two normal beats. Best view for HRV diagnostics and for catching pauses. Undetected ectopy or AFib can still leak into this view if the auto-diagnostics missed it.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Other</h3>
+      <div class="plot-wrap"><svg id="viewOther"></svg></div>
+      <p>All abnormal RR couples. In a healthy record this view should be nearly empty. Dots here flag ectopic beats or AFib/Flutter intervals.</p>
+      <div class="cluster-legend">
+        <span class="chip"><span class="swatch" style="background:#2E8B57"></span>Normal</span>
+        <span class="chip"><span class="swatch" style="background:#CB2C21"></span>Ventricular premature</span>
+        <span class="chip"><span class="swatch" style="background:#D98E24"></span>Supraventricular premature</span>
+        <span class="chip"><span class="swatch" style="background:#0F5FAA"></span>AFib / Flutter</span>
+        <span class="chip"><span class="swatch" style="background:#7A3EA8"></span>Unknown</span>
+      </div>
+    </div>
+  </div>
+</section>
+`);
+function refreshViewPlots(){
+  drawPlot(document.getElementById('viewNNN'), {max:1600, clusters:[{pts:makeComet(700,280,1000,150),color:'#2E8B57'}]});
+  drawPlot(document.getElementById('viewOther'), {max:1600, clusters:[
+    {pts: makeCluster(220,500,1350,40,180), color:'#CB2C21'},
+    {pts: makeCluster(150,300,300,50,50), color:'#0F5FAA'},
+    {pts: makeCluster(150,1250,1150,140,140), color:'#2E8B57'},
+    {pts: makeCluster(150,1200,450,120,60), color:'#2E8B57'},
+  ]});
+}
+
+/* ============================================================
+   9. KNOWLEDGE CHECK QUIZ
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="quiz">
+  <div class="eyebrow">Knowledge check</div>
+  <h2 class="title" id="quizTitle">Test Yourself</h2>
+  <div class="card" id="quizArea"></div>
+</section>
+`);
+const quizQuestions = [
+  {
+    q:"What two values does the Lorenz plot actually plot against each other?",
+    opts:["Heart rate vs. respiration rate","An RR interval vs. the RR interval right before it","QRS duration vs. RR interval","Time of day vs. heart rate"],
+    answer:1,
+    explain:"Each dot is one couple of consecutive RR intervals: RRₙ on the horizontal axis, RRₙ₊₁ on the vertical axis."
+  },
+  {
+    q:"A healthy person's main cluster typically resembles what shape?",
+    opts:["A perfect circle","A comet — narrow at the bottom, widening toward the top","A straight horizontal line","Two separate equal-sized clusters"],
+    answer:1,
+    explain:"Normal HRV produces a comet: narrow low on the identity line, gradually widening as RR (and HRV) increases."
+  },
+  {
+    q:"The main cluster sits low and narrow on the line of identity. What does this suggest?",
+    opts:["Parasympathetic dominance, bradycardia","Sympathetic dominance, tachycardia likely","A pause","Atrial Fibrillation"],
+    answer:1,
+    explain:"Shorter RR intervals carry less variability, so a low, narrow cluster points to sympathetic prevalence and tachycardia."
+  },
+  {
+    q:"Where should you look for possible pauses on the graph?",
+    opts:["Anywhere below 500 ms","Only dots exactly on the line of identity","Any dot above 2000 ms on either axis","The bottom-left corner only"],
+    answer:2,
+    explain:"Any dot above 2000 ms on either axis should be inspected for a possible pause."
+  },
+  {
+    q:"A record shows a high number of dots scattered with no clear cluster — a 'shattered' image. What are the two leading explanations?",
+    opts:["Ventricular bigeminy or SVT","Technical artifact or Atrial Fibrillation/Flutter","Normal sinus rhythm at rest","A single isolated PVC"],
+    answer:1,
+    explain:"A shattered/spilled image is most often technical artifact, but can also be a sign of AFib or Flutter — select the area and check the strip to tell them apart."
+  },
+  {
+    q:"In the ectopic-beat 4-cluster pattern, which cluster represents the ectopic RR followed by the post-ectopic (compensatory) RR?",
+    opts:["Cluster 1 (main, NN)","Cluster 2 (NN→NS)","Cluster 3 (ectopic→post-ectopic)","Cluster 4 (post-ectopic→NN)"],
+    answer:2,
+    explain:"Cluster 3: short distance on the horizontal axis (the ectopic beat itself), long distance on the vertical axis (the compensatory pause after it)."
+  },
+  {
+    q:"In BTL CardioPoint-Holter's 'Other' view, what does a blue dot typically represent?",
+    opts:["A normal beat","A ventricular premature beat","Atrial Fibrillation or Flutter","Unknown / unclassified"],
+    answer:2,
+    explain:"Color coding in the Other view: green = normal, red = ventricular premature, yellow = supraventricular premature, blue = AFib/Flutter, violet = unknown."
+  },
+  {
+    q:"Why does the scale chosen for the axes matter when reading a Lorenz plot?",
+    opts:["It doesn't — the shape is identical at any scale","The same data can look bigger/smaller or shifted along the identity line depending on scale","Scale only affects the color of the dots","Scale changes which beats are classified as ectopic"],
+    answer:1,
+    explain:"The same underlying record will visually appear different — larger, smaller, or shifted — purely because of the axis scale chosen, so always check the scale before judging shape or position."
+  },
+];
+let qIdx=0, qScore=0, qAnswered=false;
+function renderQuiz(){
+  const area = document.getElementById('quizArea');
+  if(qIdx >= quizQuestions.length){
+    area.innerHTML = `
+      <div style="text-align:center;">
+        <div class="score-big">${qScore} / ${quizQuestions.length}</div>
+        <p style="font-size:16px;">${qScore===quizQuestions.length ? "Perfect score — you've got this graph down cold." : "Solid work. Review any missed concepts in the Read the Shape or Ectopic Beats tabs."}</p>
+        <button class="btn" id="quizRestart">Retake Quiz</button>
+      </div>`;
+    document.getElementById('quizRestart').addEventListener('click', ()=>{qIdx=0;qScore=0;renderQuiz();});
+    return;
+  }
+  const q = quizQuestions[qIdx];
+  qAnswered=false;
+  area.innerHTML = `
+    <div class="quiz-progress">Question ${qIdx+1} of ${quizQuestions.length}</div>
+    <div class="quiz-q">${q.q}</div>
+    <div id="optsWrap"></div>
+    <div id="explainWrap"></div>
+    <button class="btn" id="quizNextBtn" style="margin-top:14px;display:none;">${qIdx===quizQuestions.length-1?'See Results':'Next Question →'}</button>
+  `;
+  const optsWrap = document.getElementById('optsWrap');
+  q.opts.forEach((opt,i)=>{
+    const b = document.createElement('button');
+    b.className='quiz-opt';
+    b.textContent = opt;
+    b.addEventListener('click', ()=>{
+      if(qAnswered) return;
+      qAnswered=true;
+      const correct = i===q.answer;
+      if(correct) qScore++;
+      document.querySelectorAll('.quiz-opt').forEach((el,j)=>{
+        el.disabled=true;
+        if(j===q.answer) el.classList.add('correct');
+        else if(j===i && !correct) el.classList.add('incorrect');
+      });
+      document.getElementById('explainWrap').innerHTML = `<div class="explain"><strong>${correct?'Correct.':'Not quite.'}</strong> ${q.explain}</div>`;
+      document.getElementById('quizNextBtn').style.display='inline-block';
+    });
+    optsWrap.appendChild(b);
+  });
+  document.getElementById('quizNextBtn').addEventListener('click', ()=>{qIdx++;renderQuiz();});
+}
+renderQuiz();
+
+/* ============================================================
+   10. CHEAT SHEET
+============================================================ */
+main.insertAdjacentHTML('beforeend', `
+<section class="panel" id="cheat">
+  <div class="eyebrow">Quick reference</div>
+  <h2 class="title">Cheat Sheet</h2>
+  <div class="card">
+    <table class="cheat">
+      <tr><th>What you see</th><th>What it means</th></tr>
+      <tr><td>Comet shape, one cluster, on the identity line, nothing above 2000 ms</td><td>Normal / healthy record</td></tr>
+      <tr><td>Narrow, low cluster</td><td>Sympathetic dominance — tachycardia</td></tr>
+      <tr><td>Wide, upper-right cluster</td><td>Parasympathetic dominance — bradycardia</td></tr>
+      <tr><td>Dot(s) above 2000 ms on either axis</td><td>Possible pause — review the strip</td></tr>
+      <tr><td>Satellite clusters off the main diagonal</td><td>Ectopic beats (SVE / VE)</td></tr>
+      <tr><td>Shattered / spilled, no clear cluster</td><td>Technical artifact — or AFib/Flutter</td></tr>
+      <tr><td>Asymmetric cluster around the identity line</td><td>Possible rhythm disorder</td></tr>
+      <tr><td>"Other" view populated in a supposedly healthy patient</td><td>Investigate — should normally be near-empty</td></tr>
+    </table>
+  </div>
+  <div class="callout red">
+    <strong>Always check the axis scale first.</strong> The same record can look bigger, smaller, or shifted along the identity line purely because of the scale chosen — don't judge shape or position until you know the scale.
+  </div>
+</section>
+`);
+
+</script>
+</body>
+</html>
